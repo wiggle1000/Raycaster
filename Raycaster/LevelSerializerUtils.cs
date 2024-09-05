@@ -89,7 +89,8 @@ namespace Raycaster
             {
                 Debug.Log("LEVEL EXISTS AT: " + levelPath + "! Renaming old version..");
                 string directory = Path.GetDirectoryName(fileName);
-                string newName = Path.GetFileNameWithoutExtension(fileName) + "_" + DateTime.Now.ToString() + Path.GetExtension(fileName);
+                string newName = Path.GetFileNameWithoutExtension(fileName) + "_" + DateTime.Now.ToFileTimeUtc().ToString() + Path.GetExtension(fileName);
+                Debug.Log(Path.Combine(directory, newName));
                 File.Move(levelPath, Path.Combine(directory, newName));
             }
             using (FileStream fs = File.Open(levelPath, FileMode.Create))
