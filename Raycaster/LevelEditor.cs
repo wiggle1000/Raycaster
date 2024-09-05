@@ -75,6 +75,7 @@ namespace Raycaster
                 openDialog.Update(dt);
                 if (openDialog.isDone)
                 {
+                    isOpeningFile = false;
                     if (openDialog.selectedFile == null) return;
                     Open(openDialog.selectedFile);
                 }
@@ -85,15 +86,17 @@ namespace Raycaster
                 openDialog.Update(dt);
                 if (openDialog.isDone)
                 {
+                    isSavingFile = false;
+                    Debug.Log("GOT SAVE LOCATION! " + Path.Combine(openDialog.selectedFile, openDialog.typedName + ".lvl"));
                     if (openDialog.selectedFile == null) return;
-                    //TODO: ASK FOR SAVE FILE NAME!!
-                    Save(openDialog.selectedFile);
+                    if (openDialog.typedName == "") return;
+                    Save(Path.Combine(openDialog.selectedFile, openDialog.typedName+".lvl"));
                 }
                 return;
             }
 
-            KeyboardState ks = Keyboard.GetState();
-            MouseState ms = Mouse.GetState();
+            KeyboardState ks = Game.cKeyState;
+            MouseState ms = Game.cMouseState;
 
             //get tile hovered over
             hoveredX = (int)MathF.Floor(ms.X / tileDisplaySize - offsetX);
@@ -126,7 +129,7 @@ namespace Raycaster
                 }
                 if (ks.IsKeyDown(Keys.S))
                 {
-                    openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory(),"", true);
+                    openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory(), "lvl", true, true);
                     isSavingFile = true;
                 }
             }

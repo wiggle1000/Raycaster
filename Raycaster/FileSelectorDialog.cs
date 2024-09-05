@@ -16,6 +16,9 @@ namespace Raycaster
         public string rootDir = ".";
         public bool isFolderSelector = false;
 
+        public bool wantsTypedName = false;
+        public string typedName = "";
+
         public string cDir;
         private string[] cDirFiles;
         private string[] cDirDirs;
@@ -27,16 +30,20 @@ namespace Raycaster
         private float scrollTarget = 0;
         private int hoveredIndex = 0;
         private bool cancelHovered = false;
+        private bool nameHovered = false;
+
+        private TextField nameText = new TextField(new Rectangle(0,0,0,0), "");
 
         private MouseState lastms = new MouseState();
 
         private Rectangle cancelRect = new Rectangle(0, 0, 0, 0);
 
-        public FileSelectorDialog(string rootDir, string fileType = "lvl", bool isFolderSelector = false)
+        public FileSelectorDialog(string rootDir, string fileType = "lvl", bool isFolderSelector = false, bool wantsTypedName = false)
         {
             this.fileType = fileType;
             this.rootDir = rootDir;
             this.isFolderSelector = isFolderSelector;
+            this.wantsTypedName = wantsTypedName;
             cDir = rootDir;
             SelectDirectory(rootDir);
         }
@@ -116,11 +123,22 @@ namespace Raycaster
             return rect;
         }
 
+        private string FixTypedName(string rawName)
+        {
+            string fixedName = rawName;
+            foreach (char oopsie in Path.GetInvalidFileNameChars())
+            {
+                fixedName = fixedName.Replace(oopsie.ToString(), "");
+            }
+            return fixedName;
+        }
+
         public void Update(float dt)
         {
             Rectangle scissorRect = Game._graphics.GraphicsDevice.ScissorRectangle;
 
-            MouseState ms = Mouse.GetState();
+            MouseState ms = Game.cMouseState;
+            KeyboardState ks = Game.cKeyState;
 
             float lst = scrollTarget;
             scrollTarget -= (lastms.ScrollWheelValue - ms.ScrollWheelValue) / 8;
@@ -131,11 +149,38 @@ namespace Raycaster
             scroll = MathHelper.Lerp(scroll, scrollTarget, dt * 10f);
             bool isClicking = (ms.LeftButton == ButtonState.Released && lastms.LeftButton == ButtonState.Pressed);
 
+            //text box
+            if (wantsTypedName)
+            {
+                nameText.bounds = new Rectangle(90, 50, scissorRect.Width - 100, 30);
+                nameText.Update(dt);
+                if (nameText.text != FixTypedName(nameText.text))
+                {
+                    nameText.text = FixTypedName(nameText.text);
+                    LevelEditor.EditorSounds["err"].Play(0.25f, 1f, 0);
+                }
+            }
+            
+            //handle ok button (enter)
+            if(wantsTypedName)
+            {
+                if (ks.IsKeyDown(Keys.Enter))
+                {
+                    if (nameText.text != "")
+                    {
+                        nameText.selected = false;
+                        typedName = nameText.text;
+                        selectedFile = cDir;
+                        isDone = true;
+                        return;
+                    }
+                }
+            }
 
-            //handle cancel button
+            //handle cancel button (or escape)
             cancelRect = new Rectangle(scissorRect.Width - 120, 5, 100, 30);
             cancelHovered = cancelRect.Contains(ms.Position);
-            if (cancelRect.Contains(ms.Position) && isClicking)
+            if ((cancelRect.Contains(ms.Position) && isClicking) || ks.IsKeyDown(Keys.Escape))
             {
                 isDone = true;
                 selectedFile = null;
@@ -178,8 +223,16 @@ namespace Raycaster
                         {
                             selectedFile = cDirFiles[i];
                         }
-                        isDone = true;
-                        LevelEditor.EditorSounds["sel"].Play(0.25f, 1f, 0);
+                        if(wantsTypedName && FixTypedName(typedName) == "")
+                        {
+                            LevelEditor.EditorSounds["err"].Play(0.25f, 1f, 0);
+                        }
+                        else
+                        {
+                            typedName = FixTypedName(typedName);
+                            isDone = true;
+                            LevelEditor.EditorSounds["sel"].Play(0.25f, 1f, 0);
+                        }
                     }
                     break;
                 }
@@ -218,6 +271,12 @@ namespace Raycaster
             //cancel button
             Game._spriteBatch.Draw(ResourceRegistry.TEXTURES["Blank"], cancelRect, cancelHovered ? Color.Plum : Color.Red);
             Game._spriteBatch.DrawString(Game.zector, "CANCEL", cancelRect.Location.ToVector2() + new Vector2(2, 0), Color.White);
+
+            if (wantsTypedName)
+            {
+                Game._spriteBatch.DrawString(Game.zector, "Name:", nameText.bounds.Location.ToVector2() + new Vector2(-80, 0), Color.White);
+                nameText.Draw();
+            }
 
             DrawFileList();
             Game._spriteBatch.End();

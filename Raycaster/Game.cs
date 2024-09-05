@@ -6,10 +6,17 @@ namespace Raycaster
 {
     public class Game : Microsoft.Xna.Framework.Game
     {
+        public static GameWindow window;
         public static GraphicsDeviceManager _graphics;
         public static SpriteBatch _spriteBatch;
         public static SpriteFont zector;
         public static SpriteFont zectorTiny;
+
+        public static MouseState cMouseState;
+        public static KeyboardState cKeyState;
+
+        public static MouseState lastMouseState;
+        public static KeyboardState lastKeyState;
 
         public bool isLevelEditor = true;
 
@@ -35,6 +42,7 @@ namespace Raycaster
 
         protected override void LoadContent()
         {
+            window = Window;
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             ResourceRegistry.RegisterTexture(Content, "Blank");
             ResourceRegistry.RegisterTexture(Content, "Clear");
@@ -57,7 +65,10 @@ namespace Raycaster
 
         protected override void Update(GameTime gameTime)
         {
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
+            cMouseState = Mouse.GetState();
+            cKeyState = Keyboard.GetState();
+
+            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || cKeyState.IsKeyDown(Keys.Escape))
                 Exit();
 
 
@@ -67,6 +78,10 @@ namespace Raycaster
             {
                 editor.Update(dt);
             }
+
+
+            lastMouseState = cMouseState;
+            lastKeyState = cKeyState;
 
             base.Update(gameTime);
         }

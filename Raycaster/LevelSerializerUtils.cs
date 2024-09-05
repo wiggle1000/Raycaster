@@ -78,6 +78,7 @@ namespace Raycaster
         }
         public static void SaveLevel(LevelImplementation level, string fileName)
         {
+            Debug.Log("SAVING LEVEL. " + fileName);
             string levelPath = Path.Combine(levelDir, fileName);
             if (!Directory.Exists(levelDir))
             {
@@ -105,6 +106,7 @@ namespace Raycaster
                     WriteLayer(writer, level.markerLayer);
                     WriteLayer(writer, level.metaLayer);
                 }
+                fs.Close();
             }
         }
     }
