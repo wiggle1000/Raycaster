@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Audio;
 using System.Reflection.Metadata;
+using System.IO;
 
 namespace Raycaster
 {
@@ -16,7 +17,11 @@ namespace Raycaster
     {
         public LevelImplementation editingLevel = new LevelImplementation();
 
-        private Dictionary<String, SoundEffect> EditorSounds = new Dictionary<string, SoundEffect>();
+        public static Dictionary<String, SoundEffect> EditorSounds = new Dictionary<string, SoundEffect>();
+        private FileSelectorDialog openDialog;
+
+        public bool isOpeningFile = false;
+        public bool isSavingFile = false;
 
         public LevelImplementation.LayerType cLayer = LevelImplementation.LayerType.floor;
         public int settingTileTo = 0;
@@ -35,35 +40,58 @@ namespace Raycaster
         int lastScrollValue = 0;
 
 
-        public void Initialize()
-        {
-            // TODO: Add your initialization logic here
-
-        }
         private void LoadSound(ContentManager Content, string name)
         {
             EditorSounds.Add(name, Content.Load<SoundEffect>("SFX/Editor/" + name));
         }
         public void LoadContent(ContentManager Content)
         {
-            LoadSound(Content, "tact1");
-            LoadSound(Content, "tact2");
-            LoadSound(Content, "tact3");
-            LoadSound(Content, "tact4");
-            LoadSound(Content, "tact5");
+            if(EditorSounds.Count == 0)
+            {
+                LoadSound(Content, "tact1");
+                LoadSound(Content, "tact2");
+                LoadSound(Content, "tact3");
+                LoadSound(Content, "tact4");
+                LoadSound(Content, "tact5");
 
-            LoadSound(Content, "chip1");
-            LoadSound(Content, "chip2");
+                LoadSound(Content, "chip1");
+                LoadSound(Content, "chip2");
+                LoadSound(Content, "chip3");
+                LoadSound(Content, "err");
+                LoadSound(Content, "sel");
 
-            LoadSound(Content, "layer0");
-            LoadSound(Content, "layer1");
-            LoadSound(Content, "layer2");
-            LoadSound(Content, "layer3");
-            LoadSound(Content, "layer4");
+                LoadSound(Content, "layer0");
+                LoadSound(Content, "layer1");
+                LoadSound(Content, "layer2");
+                LoadSound(Content, "layer3");
+                LoadSound(Content, "layer4");
+            }
         }
 
         public void Update(float dt)
         {
+            if (isOpeningFile)
+            {
+                openDialog.Update(dt);
+                if (openDialog.isDone)
+                {
+                    if (openDialog.selectedFile == null) return;
+                    Open(openDialog.selectedFile);
+                }
+                return;
+            }
+            else if (isSavingFile)
+            {
+                openDialog.Update(dt);
+                if (openDialog.isDone)
+                {
+                    if (openDialog.selectedFile == null) return;
+                    //TODO: ASK FOR SAVE FILE NAME!!
+                    Save(openDialog.selectedFile);
+                }
+                return;
+            }
+
             KeyboardState ks = Keyboard.GetState();
             MouseState ms = Mouse.GetState();
 
@@ -86,7 +114,24 @@ namespace Raycaster
             offsetX += offsetVelX * dt;
             offsetY += offsetVelY * dt;
 
-            //zooming, layer scrolling, tile id change
+            //--------HOTKEYS--------
+
+            //ctrl+...
+            if (ks.IsKeyDown(Keys.LeftControl) || ks.IsKeyDown(Keys.RightControl))
+            {
+                if (ks.IsKeyDown(Keys.O))
+                {
+                    openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory());
+                    isOpeningFile = true;
+                }
+                if (ks.IsKeyDown(Keys.S))
+                {
+                    openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory(),"", true);
+                    isSavingFile = true;
+                }
+            }
+
+            //--------zooming, layer scrolling, tile id change--------
             int scroll = (int)MathF.Round(MathHelper.Clamp((ms.ScrollWheelValue - lastScrollValue)/100f, -15, 15));
             if(scroll != 0)
             {
@@ -100,7 +145,7 @@ namespace Raycaster
                         EditorSounds["chip1"].Play(0.25f, 0.5f, 0);
                 }
                 //SWITCHING LAYERS
-                else if (ks.IsKeyDown(Keys.LeftControl) || ks.IsKeyDown(Keys.LeftControl))
+                else if (ks.IsKeyDown(Keys.LeftControl) || ks.IsKeyDown(Keys.RightControl))
                 {
                     cLayer = (LevelImplementation.LayerType)MathHelper.Clamp((byte)cLayer + scroll, 0, 4);
                     if (EditorSounds.ContainsKey("layer" + (byte)cLayer)) EditorSounds["layer" + (byte)cLayer].Play(0.25f, 1f, 0);
@@ -117,7 +162,7 @@ namespace Raycaster
                 lastScrollValue = ms.ScrollWheelValue;
             }
 
-            //placing tiles
+            //--------placing tiles--------
             if (ms.LeftButton == ButtonState.Pressed)
             {
                 if (cursorOverMap)
@@ -130,7 +175,7 @@ namespace Raycaster
                     }
                 }
             }
-            //erasing tiles
+            //--------erasing tiles--------
             else if (ms.RightButton == ButtonState.Pressed)
             {
                 if (cursorOverMap)
@@ -143,7 +188,7 @@ namespace Raycaster
                     }
                 }
             }
-            //picking tile from map
+            //--------picking tile from map--------
             else if (ms.MiddleButton == ButtonState.Pressed)
             {
                 if (cursorOverMap)
@@ -157,7 +202,7 @@ namespace Raycaster
                 }
             }
 
-            //movement sounds
+            //--------movement sounds--------
             float soundMoveSpeed = MathHelper.Clamp(new Vector2(offsetVelX * dt, offsetVelY * dt).Length()*4f, 0, 1);
             if (moveSoundCounter > 4f)
             {
@@ -221,6 +266,11 @@ namespace Raycaster
 
         public void Draw()
         {
+            if (isOpeningFile || isSavingFile)
+            {
+                openDialog.Draw();
+                return;
+            }
             Game._spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
             Game._spriteBatch.Draw(ResourceRegistry.TEXTURES["Stars"], Game._graphics.GraphicsDevice.ScissorRectangle, Color.DarkSlateGray);
             if (cLayer == LevelImplementation.LayerType.floor)
@@ -259,6 +309,16 @@ namespace Raycaster
             Game._spriteBatch.DrawString(Game.zector, "Editing:" + ((int)cLayer) + " - " + cLayer, new Vector2(10, 5), Color.White);
             Game._spriteBatch.DrawString(Game.zector, "Setting:" + settingTileTo + " - " + "(TILE_NAME)", new Vector2(10, 50), Color.White);
             Game._spriteBatch.End();
+        }
+
+        public void Save(string path = "EDITOR_SAVED/untitled.lvl")
+        {
+            LevelSerializerUtils.SaveLevel(editingLevel, path);
+        }
+
+        public void Open(string path = "EDITOR_SAVED/untitled.lvl")
+        {
+            editingLevel = LevelSerializerUtils.LoadLevel(path);
         }
     }
 }

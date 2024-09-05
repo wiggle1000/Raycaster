@@ -9,6 +9,7 @@ namespace Raycaster
         public static GraphicsDeviceManager _graphics;
         public static SpriteBatch _spriteBatch;
         public static SpriteFont zector;
+        public static SpriteFont zectorTiny;
 
         public bool isLevelEditor = true;
 
@@ -50,6 +51,7 @@ namespace Raycaster
             ResourceRegistry.RegisterTexture(Content, "Obj3");
             ResourceRegistry.RegisterTexture(Content, "Obj4");
             zector = Content.Load<SpriteFont>("Zector");
+            zectorTiny = Content.Load<SpriteFont>("ZectorTiny");
             editor.LoadContent(Content);
         }
 
@@ -67,7 +69,6 @@ namespace Raycaster
             }
 
             base.Update(gameTime);
-            
         }
 
         protected override void Draw(GameTime gameTime)
