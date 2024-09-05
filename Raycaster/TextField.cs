@@ -32,8 +32,8 @@ namespace Raycaster
 
         public void Update(float dt)
         {
-            hovered = bounds.Contains(Game.cMouseState.Position);
-            bool clicking = Game.cMouseState.LeftButton == ButtonState.Released && Game.lastMouseState.LeftButton == ButtonState.Pressed;
+            hovered = bounds.Contains(InputManager.MousePos);
+            bool clicking = InputManager.IsMouseJustReleased(MouseButton.Left);
             bool clicked = hovered && clicking;
             if (clicked)
             {

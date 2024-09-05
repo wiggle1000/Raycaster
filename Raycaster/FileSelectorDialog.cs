@@ -34,8 +34,6 @@ namespace Raycaster
 
         private TextField nameText = new TextField(new Rectangle(0,0,0,0), "");
 
-        private MouseState lastms = new MouseState();
-
         private Rectangle cancelRect = new Rectangle(0, 0, 0, 0);
 
         public FileSelectorDialog(string rootDir, string fileType = "lvl", bool isFolderSelector = false, bool wantsTypedName = false)
@@ -137,17 +135,14 @@ namespace Raycaster
         {
             Rectangle scissorRect = Game._graphics.GraphicsDevice.ScissorRectangle;
 
-            MouseState ms = Game.cMouseState;
-            KeyboardState ks = Game.cKeyState;
-
             float lst = scrollTarget;
-            scrollTarget -= (lastms.ScrollWheelValue - ms.ScrollWheelValue) / 8;
+            scrollTarget -= InputManager.ScrollDelta * 4f;
             if(scrollTarget != lst)
             {
                 LevelEditor.EditorSounds["tact2"].Play(0.25f, 1f, 0);
             }
             scroll = MathHelper.Lerp(scroll, scrollTarget, dt * 10f);
-            bool isClicking = (ms.LeftButton == ButtonState.Released && lastms.LeftButton == ButtonState.Pressed);
+            bool isClicking = InputManager.IsMouseJustReleased(MouseButton.Left);
 
             //text box
             if (wantsTypedName)
@@ -164,7 +159,7 @@ namespace Raycaster
             //handle ok button (enter)
             if(wantsTypedName)
             {
-                if (ks.IsKeyDown(Keys.Enter))
+                if (InputManager.KeyJustPressed(Keys.Enter))
                 {
                     if (nameText.text != "")
                     {
@@ -179,8 +174,8 @@ namespace Raycaster
 
             //handle cancel button (or escape)
             cancelRect = new Rectangle(scissorRect.Width - 120, 5, 100, 30);
-            cancelHovered = cancelRect.Contains(ms.Position);
-            if ((cancelRect.Contains(ms.Position) && isClicking) || ks.IsKeyDown(Keys.Escape))
+            cancelHovered = cancelRect.Contains(InputManager.MousePos);
+            if ((cancelRect.Contains(InputManager.MousePos) && isClicking) || InputManager.KeyDown(Keys.Escape))
             {
                 isDone = true;
                 selectedFile = null;
@@ -193,14 +188,13 @@ namespace Raycaster
             for (int i = 0; i < cDirDirs.Length; i++)
             {
                 Rectangle? rect = GetOptionRectangle(optionIndex);
-                if (rect.HasValue && rect.Value.Contains(ms.Position))
+                if (rect.HasValue && rect.Value.Contains(InputManager.MousePos))
                 {
                     hoveredIndex = optionIndex;
                     if(hoveredIndex != lastHovered) LevelEditor.EditorSounds["tact4"].Play(0.25f, 1f, 0);
                     if (isClicking)
                     {
                         SelectDirectory(cDirDirs[i]);
-                        lastms = ms;
                         return;
                     }
                     break;
@@ -210,7 +204,7 @@ namespace Raycaster
             for (int i = 0; i < cDirFiles.Length; i++)
             {
                 Rectangle? rect = GetOptionRectangle(optionIndex);
-                if (rect.HasValue && rect.Value.Contains(ms.Position))
+                if (rect.HasValue && rect.Value.Contains(InputManager.MousePos))
                 {
                     hoveredIndex = optionIndex;
                     if (isClicking)
@@ -238,8 +232,6 @@ namespace Raycaster
                 }
                 optionIndex++;
             }
-
-            lastms = ms;
         }
 
         public void DrawFileList()

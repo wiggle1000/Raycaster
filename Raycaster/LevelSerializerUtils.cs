@@ -44,16 +44,19 @@ namespace Raycaster
             }
         }
 
-        public static LevelImplementation LoadLevel(string fileName)
+        public static LevelImplementation LoadLevel(string fileName, bool isLocalPath = true)
         {
             string levelPath = fileName;
             Debug.Log("LOADING LEVEL. " + fileName);
-            //string levelPath = Path.Combine(levelDir, fileName);
-            /*if (!Directory.Exists(levelDir))
+            if(isLocalPath)
             {
-                Debug.Log("LEVEL FOLDER MISSING!");
-                return null;
-            }*/
+                levelPath = Path.Combine(levelDir, fileName);
+                if (!Directory.Exists(levelDir))
+                {
+                    Debug.Log("LEVEL FOLDER MISSING!");
+                    return null;
+                }
+            }
             if (!File.Exists(levelPath))
             {
                 Debug.Log("LEVEL NOT FOUND AT: " + levelPath);
@@ -78,14 +81,16 @@ namespace Raycaster
                 }
             }
         }
-        public static void SaveLevel(LevelImplementation level, string fileName)
+        public static void SaveLevel(LevelImplementation level, string fileName, bool shouldOverwrite)
         {
             Debug.Log("SAVING LEVEL. " + fileName);
             string levelPath = fileName;
-            if (File.Exists(levelPath))
+            if (File.Exists(levelPath) && !shouldOverwrite)
             {
-                Debug.Log("LEVEL EXISTS AT: " + levelPath);
-                return;
+                Debug.Log("LEVEL EXISTS AT: " + levelPath + "! Renaming old version..");
+                string directory = Path.GetDirectoryName(fileName);
+                string newName = Path.GetFileNameWithoutExtension(fileName) + "_" + DateTime.Now.ToString() + Path.GetExtension(fileName);
+                File.Move(levelPath, Path.Combine(directory, newName));
             }
             using (FileStream fs = File.Open(levelPath, FileMode.Create))
             {

@@ -19,6 +19,7 @@ namespace Raycaster
 
         public static Dictionary<String, SoundEffect> EditorSounds = new Dictionary<string, SoundEffect>();
         private FileSelectorDialog openDialog;
+        public string editingFilePath = "";
 
         public bool isOpeningFile = false;
         public bool isSavingFile = false;
@@ -36,8 +37,6 @@ namespace Raycaster
 
         float moveSpeedTarget = 10;
         float moveSoundCounter = 0;
-
-        int lastScrollValue = 0;
 
 
         private void LoadSound(ContentManager Content, string name)
@@ -94,23 +93,20 @@ namespace Raycaster
                 return;
             }
 
-            KeyboardState ks = Game.cKeyState;
-            MouseState ms = Game.cMouseState;
-
             //get tile hovered over
-            hoveredX = (int)MathF.Floor(ms.X / tileDisplaySize - offsetX);
-            hoveredY = (int)MathF.Floor(ms.Y / tileDisplaySize - offsetY);
+            hoveredX = (int)MathF.Floor(InputManager.MouseX / tileDisplaySize - offsetX);
+            hoveredY = (int)MathF.Floor(InputManager.MouseY / tileDisplaySize - offsetY);
             cursorOverMap = hoveredX >= 0 && hoveredX < editingLevel.width && hoveredY >= 0 && hoveredY < editingLevel.width;
 
             //horizontal, vertical movement
             float moveAccelSpeed = dt * 10;
 
-            if (ks.IsKeyDown(Keys.A)) offsetVelX = MathHelper.Lerp(offsetVelX, moveSpeedTarget, moveAccelSpeed);
-            else if (ks.IsKeyDown(Keys.D)) offsetVelX = MathHelper.Lerp(offsetVelX, -moveSpeedTarget, moveAccelSpeed);
+            if (InputManager.KeyDown(Keys.A)) offsetVelX = MathHelper.Lerp(offsetVelX, moveSpeedTarget, moveAccelSpeed);
+            else if (InputManager.KeyDown(Keys.D)) offsetVelX = MathHelper.Lerp(offsetVelX, -moveSpeedTarget, moveAccelSpeed);
             else { offsetVelX = MathHelper.Lerp(offsetVelX, 0, moveAccelSpeed); if (MathF.Abs(offsetVelX) < 0.1f) offsetVelX = 0; }
 
-            if (ks.IsKeyDown(Keys.W)) offsetVelY = MathHelper.Lerp(offsetVelY, moveSpeedTarget, moveAccelSpeed);
-            else if (ks.IsKeyDown(Keys.S)) offsetVelY = MathHelper.Lerp(offsetVelY, -moveSpeedTarget, moveAccelSpeed);
+            if (InputManager.KeyDown(Keys.W)) offsetVelY = MathHelper.Lerp(offsetVelY, moveSpeedTarget, moveAccelSpeed);
+            else if (InputManager.KeyDown(Keys.S)) offsetVelY = MathHelper.Lerp(offsetVelY, -moveSpeedTarget, moveAccelSpeed);
             else { offsetVelY = MathHelper.Lerp(offsetVelY, 0, moveAccelSpeed); if (MathF.Abs(offsetVelY) < 0.1f) offsetVelY = 0; }
 
             offsetX += offsetVelX * dt;
@@ -119,26 +115,33 @@ namespace Raycaster
             //--------HOTKEYS--------
 
             //ctrl+...
-            if (ks.IsKeyDown(Keys.LeftControl) || ks.IsKeyDown(Keys.RightControl))
+            if (InputManager.KeyDown(Keys.LeftControl) || InputManager.KeyDown(Keys.RightControl))
             {
-                if (ks.IsKeyDown(Keys.O))
+                if (InputManager.KeyDown(Keys.O))
                 {
                     openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory());
                     isOpeningFile = true;
                 }
-                if (ks.IsKeyDown(Keys.S))
+                if (InputManager.KeyDown(Keys.S))
                 {
-                    openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory(), "lvl", true, true);
-                    isSavingFile = true;
+                    if(InputManager.ShiftDown() || editingFilePath == "")
+                    {
+                        openDialog = new FileSelectorDialog(Directory.GetCurrentDirectory(), "lvl", true, true);
+                        isSavingFile = true;
+                    }
+                    else if(editingFilePath != "")
+                    {
+
+                    }
                 }
             }
 
             //--------zooming, layer scrolling, tile id change--------
-            int scroll = (int)MathF.Round(MathHelper.Clamp((ms.ScrollWheelValue - lastScrollValue)/100f, -15, 15));
+            int scroll = (int)InputManager.ScrollDelta;
             if(scroll != 0)
             {
                 //SWITCHING PALETTE
-                if (ks.IsKeyDown(Keys.LeftShift) || ks.IsKeyDown(Keys.RightShift))
+                if (InputManager.ShiftDown())
                 {
                     settingTileTo = MathHelper.Clamp(settingTileTo + scroll, 0, 32);
                     if (scroll > 0)
@@ -147,7 +150,7 @@ namespace Raycaster
                         EditorSounds["chip1"].Play(0.25f, 0.5f, 0);
                 }
                 //SWITCHING LAYERS
-                else if (ks.IsKeyDown(Keys.LeftControl) || ks.IsKeyDown(Keys.RightControl))
+                else if (InputManager.CtrlDown())
                 {
                     cLayer = (LevelImplementation.LayerType)MathHelper.Clamp((byte)cLayer + scroll, 0, 4);
                     if (EditorSounds.ContainsKey("layer" + (byte)cLayer)) EditorSounds["layer" + (byte)cLayer].Play(0.25f, 1f, 0);
@@ -161,11 +164,10 @@ namespace Raycaster
                     else
                         EditorSounds["chip1"].Play(0.25f, 1f, 0);
                 }
-                lastScrollValue = ms.ScrollWheelValue;
             }
 
             //--------placing tiles--------
-            if (ms.LeftButton == ButtonState.Pressed)
+            if (InputManager.IsMouseDown(MouseButton.Left))
             {
                 if (cursorOverMap)
                 {
@@ -178,7 +180,7 @@ namespace Raycaster
                 }
             }
             //--------erasing tiles--------
-            else if (ms.RightButton == ButtonState.Pressed)
+            else if (InputManager.IsMouseDown(MouseButton.Right))
             {
                 if (cursorOverMap)
                 {
@@ -191,7 +193,7 @@ namespace Raycaster
                 }
             }
             //--------picking tile from map--------
-            else if (ms.MiddleButton == ButtonState.Pressed)
+            else if (InputManager.IsMouseDown(MouseButton.Middle))
             {
                 if (cursorOverMap)
                 {
@@ -315,12 +317,14 @@ namespace Raycaster
 
         public void Save(string path = "EDITOR_SAVED/untitled.lvl")
         {
-            LevelSerializerUtils.SaveLevel(editingLevel, path);
+            bool shouldOverwrite = (editingFilePath == path);
+            LevelSerializerUtils.SaveLevel(editingLevel, path, shouldOverwrite);
+            editingFilePath = path;
         }
 
         public void Open(string path = "EDITOR_SAVED/untitled.lvl")
         {
-            editingLevel = LevelSerializerUtils.LoadLevel(path);
+            editingLevel = LevelSerializerUtils.LoadLevel(path, false);
         }
     }
 }

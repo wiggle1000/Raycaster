@@ -11,12 +11,7 @@ namespace Raycaster
         public static SpriteBatch _spriteBatch;
         public static SpriteFont zector;
         public static SpriteFont zectorTiny;
-
-        public static MouseState cMouseState;
-        public static KeyboardState cKeyState;
-
-        public static MouseState lastMouseState;
-        public static KeyboardState lastKeyState;
+        public static Game instance;
 
         public bool isLevelEditor = true;
 
@@ -31,6 +26,7 @@ namespace Raycaster
             _graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             IsMouseVisible = true;
+            instance = this;
         }
 
         protected override void Initialize()
@@ -65,23 +61,17 @@ namespace Raycaster
 
         protected override void Update(GameTime gameTime)
         {
-            cMouseState = Mouse.GetState();
-            cKeyState = Keyboard.GetState();
 
-            if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || cKeyState.IsKeyDown(Keys.Escape))
-                Exit();
-
+            //if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || cKeyState.IsKeyDown(Keys.Escape))
+                //Exit();
 
             float dt = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            InputManager.Update(dt);
 
             if (isLevelEditor)
             {
                 editor.Update(dt);
             }
-
-
-            lastMouseState = cMouseState;
-            lastKeyState = cKeyState;
 
             base.Update(gameTime);
         }
