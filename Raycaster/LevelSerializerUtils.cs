@@ -25,7 +25,7 @@ namespace Raycaster
             MapLayer layer = new MapLayer(levelW, levelH);
             for (int x = 0; x < levelW; x++)
             {
-                for (int y = 0; x < levelW; x++)
+                for (int y = 0; y < levelH; y++)
                 {
                     layer.SetAt(x, y, reader.Read7BitEncodedInt());
                 }
@@ -37,7 +37,7 @@ namespace Raycaster
         {
             for (int x = 0; x < layer.width; x++)
             {
-                for (int y = 0; x < layer.height; x++)
+                for (int y = 0; y < layer.height; y++)
                 {
                     writer.Write7BitEncodedInt(layer.GetAt(x, y));
                 }
@@ -46,12 +46,14 @@ namespace Raycaster
 
         public static LevelImplementation LoadLevel(string fileName)
         {
-            string levelPath = Path.Combine(levelDir, fileName);
-            if (!Directory.Exists(levelDir))
+            string levelPath = fileName;
+            Debug.Log("LOADING LEVEL. " + fileName);
+            //string levelPath = Path.Combine(levelDir, fileName);
+            /*if (!Directory.Exists(levelDir))
             {
                 Debug.Log("LEVEL FOLDER MISSING!");
                 return null;
-            }
+            }*/
             if (!File.Exists(levelPath))
             {
                 Debug.Log("LEVEL NOT FOUND AT: " + levelPath);
@@ -79,12 +81,7 @@ namespace Raycaster
         public static void SaveLevel(LevelImplementation level, string fileName)
         {
             Debug.Log("SAVING LEVEL. " + fileName);
-            string levelPath = Path.Combine(levelDir, fileName);
-            if (!Directory.Exists(levelDir))
-            {
-                Debug.Log("LEVEL FOLDER MISSING!");
-                return;
-            }
+            string levelPath = fileName;
             if (File.Exists(levelPath))
             {
                 Debug.Log("LEVEL EXISTS AT: " + levelPath);

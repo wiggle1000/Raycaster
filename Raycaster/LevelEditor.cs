@@ -87,7 +87,6 @@ namespace Raycaster
                 if (openDialog.isDone)
                 {
                     isSavingFile = false;
-                    Debug.Log("GOT SAVE LOCATION! " + Path.Combine(openDialog.selectedFile, openDialog.typedName + ".lvl"));
                     if (openDialog.selectedFile == null) return;
                     if (openDialog.typedName == "") return;
                     Save(Path.Combine(openDialog.selectedFile, openDialog.typedName+".lvl"));
